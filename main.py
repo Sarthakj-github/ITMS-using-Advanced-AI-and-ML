@@ -181,7 +181,6 @@ class TrafficSystem:
             annotated_img = cv2.rectangle(annotated_img, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
             annotated_img = cv2.putText(annotated_img, f"{class_name} {confidence}", (int(x1), int(y1)-10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-
         debug_path = BASE_DIR / "debug.jpg"
         cv2.imwrite(str(debug_path), cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR))
     

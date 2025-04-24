@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 import threading
 import time
@@ -67,28 +67,63 @@ def get_status():
         "vehicle_counts": system.count_lane_vehicles() if system.is_running else []
     })
 
+
 @app.route('/debug', methods=['POST'])
 def debug_image():
-    """Endpoint for debugging vehicle detection"""
+    """Endpoint for debugging vehicle detection with image display"""
     if 'image' not in request.files:
         return jsonify({
             "error": "No image provided",
             "status": "error"
         }), 400
     
+    # Save the uploaded image temporarily
     image_file = request.files['image']
-    temp_path = os.path.join(INPUT_DIR, "debug_temp.jpg")
+    temp_path = os.path.join(BASE_DIR, "debug_temp.jpg")
     image_file.save(temp_path)
     
+    # Process the image (assuming system.debug_detection exists)
     system.debug_detection(temp_path)
     debug_path = str(BASE_DIR / "debug.jpg")
     
-    return jsonify({
-        "status": "success",
-        "message": "Debug image processed",
-        "debug_path": debug_path,
-        "output": "debug.jpg"
-    })
+    # Return HTML response with the debug image
+    return f"""
+    <html>
+        <head>
+            <title>Debug Image Results</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                h1 {{ color: #333; }}
+                img {{ max-width: 80%; border: 1px solid #ddd; margin: 20px 0; }}
+                .info {{ background: #f5f5f5; padding: 15px; border-radius: 5px; }}
+            </style>
+        </head>
+        <body>
+            <h1>Vehicle Detection Debug Results</h1>
+            <div class="image-container">
+                <img src="/view_debug" alt="Debug Image">
+            </div>
+            <div class="info">
+                <p><strong>Status:</strong> Processing complete</p>
+                <p><strong>Image saved at:</strong> {debug_path}</p>
+                <p><strong>Original filename:</strong> {image_file.filename}</p>
+            </div>
+        </body>
+    </html>
+    """
+
+@app.route('/view_debug')
+def view_debug():
+    """Endpoint to serve the processed debug image"""
+    debug_path = str(BASE_DIR / "debug.jpg")
+    return send_file(debug_path, mimetype='image/jpeg')
+
+# Clean up function (optional)
+@app.teardown_request
+def remove_temp_files(exception=None):
+    temp_path = os.path.join(BASE_DIR, "debug_temp.jpg")
+    if os.path.exists(temp_path):
+        os.remove(temp_path)
 
 @app.route('/reset', methods=['POST'])
 def reset_system():
