@@ -3,4 +3,18 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 20px;
-  }
+    padding: 20px;
+}
+  
+.no-lanes-warning {
+    padding: 20px;
+    background: #fff8e1;
+    border-left: 4px solid #ffc107;
+    color: #333;
+    width: 100%;
+}
+  
+.no-lanes-warning ul {
+    margin-top: 10px;
+    padding-left: 20px;
+}

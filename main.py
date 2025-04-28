@@ -62,7 +62,7 @@ class TrafficSystem:
     
         for *_, conf, cls in results.xyxy[0]:
             cls = int(cls)
-            if cls in self.detector.vehicle_classes and conf > 0.5:
+            if cls in self.detector.vehicle_classes and conf >= 0.20:
                 name, w_eqv = self.detector.vehicle_classes[cls]
                 weight += w_eqv
                 details[name] += 1
@@ -163,26 +163,63 @@ class TrafficSystem:
         self.exit_counter = 1
         return True
 
-    def debug_detection(self, image_path):
-        img = cv2.imread(image_path)
+    def debug_detection(self, input_path, output_path):
+        """
+        Process an image for vehicle detection and save annotated results
+    
+        Args:
+            input_path (str): Path to the input image
+            output_path (str): Path where to save the processed image
+        """
+        # Read input image
+        img = cv2.imread(input_path)
         if img is None:
-            print("No Image")
-            return
-
-        with torch.no_grad():
-            results = self.detector.model(img)
-
-        annotated_img = img.copy()
-        for det in results.xyxy[0]:
-            x1, y1, x2, y2, conf, cls = det
-            class_name = self.detector.class_names.get(int(cls), "Unknown")
-            confidence = round(conf.item(), 2)
+            raise ValueError(f"Could not read image from {input_path}")
+    
+        # Convert color space if needed (BGR to RGB)
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
-            annotated_img = cv2.rectangle(annotated_img, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
-            annotated_img = cv2.putText(annotated_img, f"{class_name} {confidence}", (int(x1), int(y1)-10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-        debug_path = BASE_DIR / "debug.jpg"
-        cv2.imwrite(str(debug_path), cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR))
+        try:
+            # Perform object detection
+            with torch.no_grad():
+                results = self.detector.model(img_rgb)
+        
+            # Create annotated image
+            annotated_img = img_rgb.copy()
+            for det in results.xyxy[0]:
+                x1, y1, x2, y2, conf, cls = det
+                class_name = self.detector.class_names.get(int(cls), "Unknown")
+                confidence = round(conf.item(), 2)
+                
+                # Draw bounding box and label
+                color = (255, 0, 0)  # Red color for boxes
+                annotated_img = cv2.rectangle(
+                    annotated_img, 
+                    (int(x1), int(y1)), 
+                    (int(x2), int(y2)), 
+                    color, 2
+                )
+                annotated_img = cv2.putText(
+                    annotated_img, 
+                    f"{class_name} {confidence}", 
+                    (int(x1), int(y1)-10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 
+                    0.5, 
+                    color, 
+                    2
+                )
+            
+            # Save the processed image
+            success = cv2.imwrite(
+                output_path, 
+                cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR)
+            )
+            
+            if not success:
+                raise ValueError(f"Failed to save processed image to {output_path}")
+                
+        except Exception as e:
+            raise RuntimeError(f"Error during image processing: {str(e)}")
     
     def get_lane_status(self):
         status = {}
