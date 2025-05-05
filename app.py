@@ -89,7 +89,7 @@ def debug_image():
             "status": "error",
             "message": "No image provided"
         }), 400
-    
+
     try:
         # Generate unique filename
         unique_id = str(uuid.uuid4())
